@@ -1,0 +1,206 @@
+openapi: 3.0.0
+info:
+  title: API для блокировки платежей
+  version: 1.0.0
+  description: API для блокировки и разблокировки платежей клиента, проверки его статуса
+
+servers:
+  - url: https://api.bank.ru/v1
+
+paths:
+  /clients/{clientId}/block:
+
+    get:
+      summary: Получить статус клиента
+      tags: 
+        - Проверка статуса
+      description: Возвращает информацию о текущем статусе клиента
+      parameters:
+        - name: clientId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Статус блокировки получен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientStatus'
+        '404':
+          description: Клиент не найден
+        '500':
+          description: Внутренняя ошибка сервера
+
+    post:
+      summary: Заблокировать клиента
+      tags:
+        - Блокировка клиента
+      description: Создает блокировку клиента
+      parameters:
+        - name: clientId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BlockRequest'
+      responses:
+        '201':
+          description: Клиент заблокирован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BlockResponse'
+        '400':
+          description: Некорректный запрос
+        '409':
+          description: Клиент уже заблокирован
+        '500':
+          description: Внутренняя ошибка сервера
+
+    patch:
+      summary: Внесение изменений
+      tags:
+        - Редактирование сведений
+      description: Внести изменения в сведения о блокировке
+      parameters:
+        - name: clientId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BlockUpdate'
+      responses:
+        '201':
+          description: Изменения успешно внесены
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BlockResponse'
+        '400':
+          description: Некорректный запрос
+        '500':
+          description: Внутренняя ошибка сервера
+
+    delete:
+      summary: Разблокировать клиента
+      tags:
+        - Разблокировка клиента
+      description: Удаляет блокировку клиента
+      parameters:
+        - name: clientId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Блокировка успешно снята
+        '404':
+          description: Блокировка не найдена
+        '500':
+          description: Внутренняя ошибка сервера
+
+components:
+  schemas:
+
+    BlockRequest:
+      type: object
+      required:
+        - blockType
+        - reason
+        - blockedBy
+      properties:
+        blockType:
+          type: string
+          enum: [FRAUD, INCORRECT_DETAILS]
+          description: Тип блокировки (FRAUD - мошенничество, INCORRECT_DETAILS - неверные реквизиты)
+        reason:
+          type: string
+          description: Описание причины блокировки 
+        blockedBy:
+          type: string
+          description: Кто произвел блокировку
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Дата окончания блокировки, если она была временной
+
+    BlockResponse:
+      type: object
+      properties:
+        clientId:
+          type: string
+        blockType:
+          $ref: '#/components/schemas/BlockRequest/properties/blockType'
+        createdAt:
+          type: string
+          format: date-time
+        blockedBy:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    BlockUpdate:
+      type: object
+      properties:
+        blockType:
+          type: string
+          enum: [FRAUD, INCORRECT_DETAILS]
+          description: Тип блокировки (FRAUD - мошенничество, INCORRECT_DETAILS - неверные реквизиты)
+        reason:
+          type: string
+          description: Описание причины блокировки 
+        blockedBy:
+          type: string
+          description: Кто произвел блокировку
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Дата окончания блокировки, если она была временной
+
+    ClientStatus:
+      type: object
+      properties:
+        clientId:
+          type: integer
+        isBlocked:
+          type: boolean
+        blockType:
+          type: string
+          enum: [FRAUD, INCORRECT_DETAILS]
+          description: Тип блокировки, если не заблокирован.
+          nullable: true
+        reason:
+          type: string
+          nullable: true
+        blockedBy:
+          type: string
+          nullable: true
+        blockedAt:
+          type: string
+          format: date-time
+          nullable: true
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+        unblockedAt:
+          type: string
+          format: date-time
+          nullable: true
